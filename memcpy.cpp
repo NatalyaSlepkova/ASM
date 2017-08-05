@@ -5,8 +5,6 @@
 
 using namespace std;
 
-const int N = (1 << 30);
-
 void copy_asm(char *dst, char const *src, size_t size)
 {
     const size_t block = 16;
@@ -46,7 +44,6 @@ void copy_asm(void* dst, void const* src, size_t size) {
 int main()
 {
     srand(time(NULL));
-
     for (int i = 0; i < 1000; i++)
     {
         int n = rand() % 10000 + 1;
