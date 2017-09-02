@@ -1,6 +1,7 @@
 #include <bits/stdc++.h>
 #include <stdint.h>
-
+#include <tmmintrin.h>
+#include <x86intrin.h>
 using namespace std;
 
 const int BLOCK = 16;
@@ -45,11 +46,14 @@ int count(string& s)
     int k = 0;
     int n = (int)s.size() - BLOCK;
     //cout << "size: " << (int)s.size() << ' ' << "n: " << n << "\n";
+    __m128i last, spaces = _mm_cmpeq_epi8(_mm_load_si128((__m128i *) (shift + str)), MASK_SPACES);
+    shift += BLOCK;
     for (; shift <= n; shift += BLOCK)
     {
-        __m128i spaces = _mm_cmpeq_epi8(_mm_load_si128((__m128i *) (shift + str)), MASK_SPACES);
-        __m128i shifted_spaces = _mm_cmpeq_epi8(_mm_loadu_si128((__m128i *) (shift + str - 1)), MASK_SPACES);
-        __m128i count = _mm_andnot_si128(shifted_spaces, spaces);
+        last = spaces;
+        spaces = _mm_cmpeq_epi8(_mm_load_si128((__m128i *) (shift + str)), MASK_SPACES);
+        __m128i shifted_spaces = _mm_alignr_epi8(spaces, last, 1);
+        __m128i count = _mm_andnot_si128(shifted_spaces, last);
         ans = _mm_sub_epi8(ans, count);
         ++k;
         if (k == 255)
