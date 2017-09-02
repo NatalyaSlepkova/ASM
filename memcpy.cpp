@@ -5,28 +5,28 @@
 
 using namespace std;
 
+const int N = (1 << 30);
+
 void copy_asm(char *dst, char const *src, size_t size)
 {
-    const size_t BLOCK = 16;
+    const size_t block = 16;
     size_t k;
 
-    for (k = 0; k < size && (size_t)(dst + k) % BLOCK != 0; k++)
+    for (k = 0; k < size && (size_t)(dst + k) % block != 0; k++)
     {
         *(dst + k) = *(src + k);
     }
 
-    ssize_t back = (size - k) % BLOCK;
+    ssize_t back = (size - k) % block;
 
-    for (size_t i = k; i < size - back; i += BLOCK)
+    for (size_t i = k; i < size - back; i += block)
     {
         __m128i reg;
 
-        __asm__("movdqu\t" "(%1), %0"
-                :"=x"(reg)
-                :"r"((const char *) src + i), "0"(reg));
-        __asm__("movntdq\t" "%1,(%0)"
-                :
-                :"r"((char *) dst + i), "x" (reg));
+        __asm__ ("movdqu\t (%1), %0\n"
+                "movntdq\t %0, (%2)\n"
+        :"=x"(reg)
+        :"r"((char *) src + i), "r"((char *) dst + i));
     }
 
     for (int i = (size - back); i < size; i++)
@@ -38,12 +38,13 @@ void copy_asm(char *dst, char const *src, size_t size)
 }
 
 void copy_asm(void* dst, void const* src, size_t size) {
-    copy_asm(reinterpret_cast<char*>(dst), reinterpret_cast<char const*>(src), size);
+    copy_asm(static_cast<char*>(dst), static_cast<char const*>(src), size);
 }
 
 int main()
 {
     srand(time(NULL));
+
     for (int i = 0; i < 1000; i++)
     {
         int n = rand() % 10000 + 1;
