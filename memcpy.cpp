@@ -14,7 +14,9 @@ void copy_asm(char *dst, char const *src, size_t size)
 
     for (k = 0; k < size && (size_t)(dst + k) % BLOCK != 0; k++)
     {
-        *(dst + k) = *(src + k);
+        *dst = *src;
+        src++;
+        dst++;
     }
 
     ssize_t back = (size - k) % BLOCK;
@@ -35,7 +37,9 @@ void copy_asm(char *dst, char const *src, size_t size)
 
     for (int i = (size - back); i < size; i++)
     {
-        *(dst + i)= *(src + i);
+        *dst = *src;
+        src++;
+        dst++;
     }
     _mm_sfence();
 
