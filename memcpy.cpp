@@ -9,17 +9,17 @@ const int N = (1 << 30);
 
 void copy_asm(char *dst, char const *src, size_t size)
 {
-    const size_t block = 16;
+    const size_t BLOCK = 16;
     size_t k;
 
-    for (k = 0; k < size && (size_t)(dst + k) % block != 0; k++)
+    for (k = 0; k < size && (size_t)(dst + k) % BLOCK != 0; k++)
     {
         *(dst + k) = *(src + k);
     }
 
-    ssize_t back = (size - k) % block;
+    ssize_t back = (size - k) % BLOCK;
 
-    for (size_t i = k; i < size - back; i += block)
+    for (size_t i = k; i < size - back; i += BLOCK)
     {
         __m128i reg;
 
