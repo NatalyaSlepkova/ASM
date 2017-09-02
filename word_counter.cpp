@@ -1,11 +1,12 @@
 #include <bits/stdc++.h>
 #include <stdint.h>
+#include <xmmintrin.h>
 #include <tmmintrin.h>
-#include <x86intrin.h>
+
 using namespace std;
 
 const int BLOCK = 16;
-int linearly(string s, size_t n)
+size_t linearly(string s, size_t n)
 {
     int ans = 0;
     for (size_t i = 0; i < n ; i++)
@@ -18,7 +19,7 @@ int linearly(string s, size_t n)
     return ans;
 }
 
-void recount_flush(int &res, __m128i &a)
+void recount_flush(size_t &res, __m128i &a)
 {
     for (int i = 0; i < BLOCK; i++)
     {
@@ -27,34 +28,39 @@ void recount_flush(int &res, __m128i &a)
     a = _mm_setzero_si128();
 }
 
-int count(string& s)
+size_t count(const char* str, size_t size)
 {
     const __m128i MASK_SPACES = _mm_set_epi8(' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
                                              ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
-    const char* str = s.c_str();
-    int res = 0;
-    int shift = 0;
-    bool was_space = true;
-
-    for (; shift < s.size() && (size_t(str + shift) % BLOCK != 0 || shift == 0); shift++)
+    const __m128i MASK_ONES = _mm_set_epi8(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+    size_t res = 0, shift = 0;
+    if (*str != ' ')
     {
-        res += (s[shift] == ' ' && !was_space);
-        was_space = (s[shift] == ' ');
+        ++res;
+    }
+    bool was_space = false;
+    for (;(size_t) (str + shift) % BLOCK != 0; shift++)
+    {
+        res += (was_space && str[shift] != ' ');
+        was_space = (str[shift] == ' ');
+    }
+
+    if (was_space && shift != 0 && *(str + shift) != ' ')
+    {
+        ++res;
     }
 
     __m128i ans = _mm_setzero_si128();
+    size_t n = size - (size - shift) % BLOCK - BLOCK;
+    __m128i last, now = _mm_cmpeq_epi8(_mm_load_si128((__m128i *) (str + shift)), MASK_SPACES);
     int k = 0;
-    int n = (int)s.size() - BLOCK;
-    //cout << "size: " << (int)s.size() << ' ' << "n: " << n << "\n";
-    __m128i last, spaces = _mm_cmpeq_epi8(_mm_load_si128((__m128i *) (shift + str)), MASK_SPACES);
-    shift += BLOCK;
-    for (; shift <= n; shift += BLOCK)
+    for (; shift < n; shift += BLOCK)
     {
-        last = spaces;
-        spaces = _mm_cmpeq_epi8(_mm_load_si128((__m128i *) (shift + str)), MASK_SPACES);
-        __m128i shifted_spaces = _mm_alignr_epi8(spaces, last, 1);
-        __m128i count = _mm_andnot_si128(shifted_spaces, last);
-        ans = _mm_sub_epi8(ans, count);
+        last = now;
+        now = _mm_cmpeq_epi8(_mm_load_si128((__m128i *) (str + shift + BLOCK)), MASK_SPACES);
+        __m128i shifted_spaces = _mm_alignr_epi8(now, last, 1);
+        __m128i count = _mm_and_si128(_mm_andnot_si128(shifted_spaces, last), MASK_ONES);
+        ans = _mm_add_epi8(ans, count);
         ++k;
         if (k == 255)
         {
@@ -62,37 +68,35 @@ int count(string& s)
             k = 0;
         }
     }
+
     recount_flush(res, ans);
 
-    if (shift == 0)
-    {
-        was_space = true;
-    }
-    else
-    {
-        was_space = s[shift - 1] == ' ';
-    }
-    for (; shift < s.size(); shift++)
-    {
-        if (s[shift] == ' ')
-        {
-            res += !was_space;
-            was_space = true;
-        }
-        else
-        {
-            was_space = false;
-        }
+    //cout << "res: " << res << "\n" << "n: " << n << "\n";
+    shift = n;
+
+    if(*(str + shift - 1) == ' ' && *(str + shift) != ' '){
+        //cout << "hear\n";
+        --res;
     }
 
-    return res + !was_space;
+    was_space = *(str + shift - 1) == ' ';
+    //cout << "was_space: " << was_space << "\n";
+    //cout << "shift: " << shift << "\n" << "size: " << size << "\n";
+    for(size_t i = shift; i < size; i++){
+        char cur = *(str + i);
+        //cout << "cur: " << cur << ' ';
+        res += (was_space && cur != ' ');
+        was_space = (cur == ' ');
+    }
+
+    return res;
 }
 
 string test()
 {
     std::string s = "";
-    const int N = 1000;
-    for (int i = 0; i < N; ++i)
+    int len = 1000;
+    for (int i = 0; i < len; ++i)
     {
         int k = rand() % 2;
         if (k)
@@ -111,10 +115,13 @@ int main() {
     for (int i = 0; i < 1000; i++)
     {
         std::string s = test();
-        //cout << s << "\n";
-        //cout << linearly(s, (int)s.size()) << "\n";
-        //cout << count(s) << "\n";
-        if (linearly(s, (int)s.size()) != count(s))
+        const char* st = s.c_str();
+        cout << s << "\n";
+        size_t right_ans = linearly(s, (int)s.size());
+        size_t my_ans = count(st, s.size());
+        cout << "right: " << right_ans << "\n";
+        cout << "my: " << my_ans << "\n";
+        if (right_ans != my_ans)
         {
             cout << ":(\n";
             return 0;
