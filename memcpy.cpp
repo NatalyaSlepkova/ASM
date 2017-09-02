@@ -23,14 +23,14 @@ void copy_asm(char *dst, char const *src, size_t size)
     {
         __m128i reg;
 
-        __asm__ volatile ("movdqu\t (%1), %0\n"
-                "movntdq\t %0, (%2)\n"
+        __asm__ volatile ("movdqu     (%1), %0\n"
+                "movntdq    %0, (%2)\n"
         : "=x"(reg)
         : "r"(src), "r"(dst)
         :"memory");
 
-        src += i;
-        dst += i;
+        src += BLOCK;
+        dst += BLOCK;
     }
 
     for (int i = (size - back); i < size; i++)
